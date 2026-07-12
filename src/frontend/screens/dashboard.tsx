@@ -1,58 +1,115 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Image } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
+import React, { useState, useRef } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { analyzeImageThreatsLocally, initializeAIModules } from '../utils/aiEngine';
 
 export default function Dashboard() {
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isScanning, setIsScanning] = useState<boolean>(false);
+  const [scanMetrics, setScanMetrics] = useState<{ status: string; label: string; score: number; explanation: string } | null>(null);
+  const [loadingStatus, setLoadingStatus] = useState<string>('');
+  
+  const fileInputRef = useRef<any>(null);
 
-  const pickImage = async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  const triggerFileSelection = () => {
+    if (isScanning) return;
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = async (event: any) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsScanning(true);
+    setScanMetrics(null);
+
+    // Dynamic verification polling loop
+    let retries = 0;
+    let modelsReady = false;
     
-    if (permissionResult.granted === false) {
-      alert("Permission to access gallery is required for Kavach.ai to scan content!");
-      return;
+    while (!modelsReady && retries < 30) {
+      setLoadingStatus("Warming local neural networks (ViT + SmolLM2)...");
+      const checkEngines = await initializeAIModules();
+      if (checkEngines) {
+        modelsReady = true;
+      } else {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        retries++;
+      }
     }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: false,
-      quality: 1,
-    });
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const base64ImageString = reader.result as string;
+        
+        setLoadingStatus("Processing pixel tokens & generating security analysis...");
+        const results = await analyzeImageThreatsLocally(base64ImageString);
+        
+        if (!results) {
+          setLoadingStatus("AI Engine initialization delay. Retrying...");
+          setIsScanning(false);
+          return;
+        }
 
-    if (!result.canceled) {
-      setSelectedImage(result.assets[0].uri);
-      console.log("Image URI captured on frontend:", result.assets[0].uri);
-    }
+        setScanMetrics(results);
+      } catch (error: any) {
+        console.error("Local processing error:", error);
+        setLoadingStatus("Engine memory processing delay. Retry.");
+      } finally {
+        setIsScanning(false);
+      }
+    };
+
+    reader.readAsDataURL(file);
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.logo}>🛡️ KAVACH.AI</Text>
-      <Text style={styles.tagline}>On-Device Content Threat Shield</Text>
+      {typeof window !== 'undefined' && (
+        <input
+          type="file"
+          ref={fileInputRef}
+          style={{ display: 'none' }}
+          accept="image/*"
+          onChange={handleFileChange}
+        />
+      )}
 
-      <TouchableOpacity style={styles.uploadCard} onPress={pickImage}>
-        {selectedImage ? (
-          <Image source={{ uri: selectedImage }} style={styles.previewImage} />
-        ) : (
-          <View style={styles.innerCard}>
-            <Text style={styles.uploadIcon}>📸</Text>
-            <Text style={styles.uploadText}>Select Draft or Media to Scan</Text>
-            <Text style={styles.subText}>Processes 100% Offline</Text>
+      <TouchableOpacity style={styles.uploadBox} onPress={triggerFileSelection} disabled={isScanning}>
+        {isScanning ? (
+          <View style={{ alignItems: 'center' }}>
+            <ActivityIndicator size="large" color="#00ffcc" />
+            <Text style={[styles.uploadText, { marginTop: 10, color: '#00ffcc' }]}>{loadingStatus}</Text>
           </View>
+        ) : (
+          <Text style={styles.uploadText}>Click to Upload and Scan Media Pixels</Text>
         )}
       </TouchableOpacity>
+
+      {scanMetrics && (
+        <View style={styles.resultBanner}>
+          <Text style={styles.resultTitle}>{scanMetrics.status}</Text>
+          <Text style={styles.resultSub}>Detected Object Element: {scanMetrics.label} ({scanMetrics.score}%)</Text>
+          
+          <View style={styles.explanationBox}>
+            <Text style={styles.explanationTitle}>LOCAL RISK BREAKDOWN:</Text>
+            <Text style={styles.explanationText}>{scanMetrics.explanation}</Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0F172A', padding: 24, justifyContent: 'center', alignItems: 'center' },
-  logo: { fontSize: 28, fontWeight: '900', color: '#F8FAFC', letterSpacing: 1 },
-  tagline: { fontSize: 13, color: '#6366F1', fontWeight: '600', textTransform: 'uppercase', marginBottom: 40, marginTop: 4 },
-  uploadCard: { width: '100%', height: 280, backgroundColor: '#1E293B', borderRadius: 16, borderStyle: 'dashed', borderWidth: 2, borderColor: '#334155', overflow: 'hidden' },
-  innerCard: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-  uploadIcon: { fontSize: 42, marginBottom: 12 },
-  uploadText: { color: '#F8FAFC', fontSize: 16, fontWeight: '600' },
-  subText: { color: '#64748b', fontSize: 12, marginTop: 4 },
-  previewImage: { width: '100%', height: '100%', resizeMode: 'cover' }
+  container: { flex: 1, backgroundColor: '#121824', padding: 20, justifyContent: 'center' },
+  uploadBox: { borderWidth: 2, borderColor: '#00ffcc', borderStyle: 'dashed', padding: 40, borderRadius: 8, alignItems: 'center' },
+  uploadText: { color: '#ffffff', fontSize: 16, fontWeight: '500' },
+  resultBanner: { marginTop: 20, padding: 15, borderRadius: 6, backgroundColor: '#1c2d42', borderWidth: 1, borderColor: '#00ffcc' },
+  resultTitle: { color: '#00ffcc', fontWeight: 'bold', fontSize: 18 },
+  resultSub: { color: '#fff', marginTop: 4, fontSize: 14 },
+  explanationBox: { marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#34495e' },
+  explanationTitle: { color: '#ff9900', fontWeight: '700', fontSize: 12, marginBottom: 4 },
+  explanationText: { color: '#e0e0e0', fontSize: 14, lineHeight: 20 }
 });
