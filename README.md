@@ -1,6 +1,39 @@
 Kavach.ai🛡️
 On-device privacy scanner for content creators 📷— catch what you're about to expose before you post it.
 
+Setup Instructions:
+
+Prerequisites:
+Node.js 20+ (check with node -v)
+npm (bundled with Node)
+A modern browser (Chrome recommended — best WASM/ONNX Runtime Web support)
+
+Dependencies
+All dependencies are declared in package.json and installed in one step — nothing needs to be installed globally except Node itself:
+json"dependencies": {
+  "@huggingface/transformers": "^4.2.0",
+  "expo": "~56.0.15",
+  "expo-image-picker": "~56.0.0",
+  "expo-media-library": "~56.0.0",
+  "expo-status-bar": "~56.0.0",
+  "react": "19.2.3",
+  "react-dom": "19.2.3",
+  "react-native": "0.85.3",
+  "react-native-web": "^0.21.2"
+}
+
+Setup and run commands:
+# 1. Clone the repository
+git clone https://github.com/1311hub/Kavach.ai.git
+cd Kavach.ai
+
+# 2. Install dependencies
+npm install
+
+# 3. Start the web app
+npx expo start --web
+
+
 🚨 Problem
 Every day, creators and social media users accidentally share sensitive information in photos and screenshots:
 ✌️ Fingerprints visible in hand gestures
@@ -67,6 +100,19 @@ Tech stack:
 React + Hugging Face transformers.js (Gemma + ViT models, running client-side)
 On-device OCR and pattern-matching risk engine
 No backend, no cloud inference APIs
+
+
+Sample input:
+Any .jpg/.png/.jpeg image file, selected via the "Click to Upload and Scan Media Pixels" box.
+Suggested test cases for a demo: a photo containing a visible laptop/monitor screen, a photo containing a visible ID card or document, and a "safe" control photo with no sensitive content, to show the range of outputs.
+
+
+Expected output
+For a photo containing a detectable risk object (e.g. a visible laptop), the app displays:
+The uploaded image, shown under "SCANNED MEDIA SOURCE"
+A risk alert panel titled with the detected risk category (e.g. "RISK ALERT: SUSPICIOUS VISUAL STRUCTURE")
+The detected object label and ViT confidence score (e.g. "Detected Object Element: LAPTOP, LAPTOP COMPUTER (46%)")
+A Gemma-generated natural-language explanation of the specific risk under "LOCAL RISK BREAKDOWN
 
 
 Team:
