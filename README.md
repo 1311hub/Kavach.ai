@@ -118,3 +118,9 @@ A Gemma-generated natural-language explanation of the specific risk under "LOCAL
 Team:
 Built in a 5-day hackathon sprint by [Krishna Pandey and Asti Bajaj].
 
+
+Architecture link 
+https://drive.google.com/file/d/1jPOwv3HvCDPvjGi1RpoeK812zSD7Td4l/view?usp=drivesdk
+
+
+
