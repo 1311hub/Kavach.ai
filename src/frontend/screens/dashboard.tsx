@@ -25,7 +25,6 @@ export default function Dashboard() {
     setScanMetrics(null);
     setImagePreview(null);
 
-    // Dynamic verification polling loop
     let retries = 0;
     let modelsReady = false;
 
@@ -69,6 +68,17 @@ export default function Dashboard() {
 
   return (
     <View style={styles.container}>
+      {/* Branded header — matches your शील्ड logo */}
+      <View style={styles.header}>
+        <Text style={styles.shieldIcon}>🛡️</Text>
+        <View>
+          <Text style={styles.brandTitle}>
+            कवच<Text style={styles.brandAccent}>.ai</Text>
+          </Text>
+          <Text style={styles.brandSubtitle}>Scan before you post</Text>
+        </View>
+      </View>
+
       {typeof window !== 'undefined' && (
         <input
           type="file"
@@ -79,48 +89,46 @@ export default function Dashboard() {
         />
       )}
 
-      <TouchableOpacity 
-        style={styles.uploadBox} 
-        onPress={triggerFileSelection} 
+      <TouchableOpacity
+        style={[styles.uploadBox, isScanning && styles.uploadBoxScanning]}
+        onPress={triggerFileSelection}
         disabled={isScanning}
       >
         {isScanning ? (
           <View style={{ alignItems: 'center' }}>
-            <ActivityIndicator size="large" color="#00ffcc" />
-            <Text style={[styles.uploadText, { marginTop: 10, color: '#00ffcc' }]}>{loadingStatus}</Text>
+            <ActivityIndicator size="large" color="#3B82F6" />
+            <Text style={[styles.uploadText, { marginTop: 10, color: '#3B82F6' }]}>{loadingStatus}</Text>
           </View>
         ) : (
-          <Text style={styles.uploadText}>Click to Upload and Scan Media Pixels</Text>
+          <>
+            <Text style={styles.uploadIcon}>+</Text>
+            <Text style={styles.uploadText}>Click to upload and scan an image</Text>
+          </>
         )}
       </TouchableOpacity>
 
-      {/* Side-by-Side Results & Preview Showcase Container */}
       {scanMetrics && imagePreview && (
         <View style={styles.resultsWorkspace}>
-          
-          {/* Left Block: The Scanned Image Preview Frame */}
           <View style={styles.previewContainer}>
-            <Text style={styles.previewTitle}>SCANNED MEDIA SOURCE:</Text>
-            <Image 
-              source={{ uri: imagePreview }} 
-              style={styles.previewImage} 
-              resizeMode="contain" 
+            <Text style={styles.previewTitle}>SCANNED IMAGE</Text>
+            <Image
+              source={{ uri: imagePreview }}
+              style={styles.previewImage}
+              resizeMode="contain"
             />
           </View>
 
-          {/* Right Block: The Local Vulnerability Dashboard Details */}
-          <View style={styles.resultBanner}>
+          <View style={[styles.resultBanner, scanMetrics.label && styles.resultBannerRisk]}>
             <Text style={styles.resultTitle}>{scanMetrics.status}</Text>
             <Text style={styles.resultSub}>
-              Detected Object Element: {scanMetrics.label} ({scanMetrics.score}%)
+              Detected: <Text style={styles.resultSubBold}>{scanMetrics.label}</Text> ({scanMetrics.score}% confidence)
             </Text>
 
             <View style={styles.explanationBox}>
-              <Text style={styles.explanationTitle}>LOCAL RISK BREAKDOWN:</Text>
+              <Text style={styles.explanationTitle}>RISK BREAKDOWN</Text>
               <Text style={styles.explanationText}>{scanMetrics.explanation}</Text>
             </View>
           </View>
-
         </View>
       )}
     </View>
@@ -128,92 +136,121 @@ export default function Dashboard() {
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: '#121824', 
-    padding: 20, 
-    justifyContent: 'center' 
+  container: {
+    flex: 1,
+    backgroundColor: '#0B1220',
+    padding: 24,
+    justifyContent: 'center',
   },
-  uploadBox: { 
-    borderWidth: 2, 
-    borderColor: '#00ffcc', 
-    borderStyle: 'dashed', 
-    padding: 30, 
-    borderRadius: 8, 
+  header: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20
+    gap: 12,
+    marginBottom: 24,
   },
-  uploadText: { 
-    color: '#ffffff', 
-    fontSize: 16, 
-    fontWeight: '500' 
+  shieldIcon: { fontSize: 32 },
+  brandTitle: { color: '#F8FAFC', fontSize: 24, fontWeight: '800', letterSpacing: 0.3 },
+  brandAccent: { color: '#3B82F6' },
+  brandSubtitle: { color: '#64748B', fontSize: 12, marginTop: 2 },
+  uploadBox: {
+    borderWidth: 2,
+    borderColor: '#3B82F6',
+    borderStyle: 'dashed',
+    borderRadius: 14,
+    padding: 36,
+    alignItems: 'center',
+    marginBottom: 20,
+    backgroundColor: '#111827',
+  },
+  uploadBoxScanning: {
+    borderColor: '#1E293B',
+  },
+  uploadIcon: { color: '#3B82F6', fontSize: 28, fontWeight: '300', marginBottom: 6 },
+  uploadText: {
+    color: '#E2E8F0',
+    fontSize: 15,
+    fontWeight: '500',
+    textAlign: 'center',
   },
   resultsWorkspace: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 20,
-    marginTop: 10,
+    gap: 16,
+    marginTop: 4,
     width: '100%',
-    justifyContent: 'center'
+    justifyContent: 'center',
   },
   previewContainer: {
     flex: 1,
     minWidth: 300,
-    backgroundColor: '#1c2d42',
-    borderRadius: 6,
-    padding: 15,
+    backgroundColor: '#111827',
+    borderRadius: 14,
+    padding: 14,
     borderWidth: 1,
-    borderColor: '#34495e',
+    borderColor: '#1F2937',
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
   },
   previewTitle: {
-    color: '#ff9900',
+    color: '#64748B',
     fontWeight: '700',
-    fontSize: 12,
+    fontSize: 11,
+    letterSpacing: 1,
     alignSelf: 'flex-start',
-    marginBottom: 10
+    marginBottom: 10,
   },
   previewImage: {
     width: '100%',
     height: 220,
-    borderRadius: 4,
-    backgroundColor: '#0f141c'
+    borderRadius: 10,
+    backgroundColor: '#0B1220',
   },
-  resultBanner: { 
+  resultBanner: {
     flex: 1.5,
     minWidth: 350,
-    padding: 15, 
-    borderRadius: 6, 
-    backgroundColor: '#1c2d42', 
-    borderWidth: 1, 
-    borderColor: '#00ffcc' 
+    padding: 18,
+    borderRadius: 14,
+    backgroundColor: '#111827',
+    borderWidth: 1,
+    borderColor: '#1F2937',
   },
-  resultTitle: { 
-    color: '#00ffcc', 
-    fontWeight: 'bold', 
-    fontSize: 18 
+  resultBannerRisk: {
+    borderColor: '#3B82F6',
+    shadowColor: '#3B82F6',
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 0 },
   },
-  resultSub: { 
-    color: '#fff', 
-    marginTop: 4, 
-    fontSize: 14 
+  resultTitle: {
+    color: '#F8FAFC',
+    fontWeight: '800',
+    fontSize: 17,
   },
-  explanationBox: { 
-    marginTop: 12, 
-    paddingTop: 10, 
-    borderTopWidth: 1, 
-    borderColor: '#34495e' 
+  resultSub: {
+    color: '#94A3B8',
+    marginTop: 6,
+    fontSize: 14,
   },
-  explanationTitle: { 
-    color: '#ff9900', 
-    fontWeight: '700', 
-    fontSize: 12, 
-    marginBottom: 4 
+  resultSubBold: {
+    color: '#E2E8F0',
+    fontWeight: '700',
   },
-  explanationText: { 
-    color: '#e0e0e0', 
-    fontSize: 14, 
-    lineHeight: 20 
-  }
+  explanationBox: {
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderColor: '#1F2937',
+  },
+  explanationTitle: {
+    color: '#3B82F6',
+    fontWeight: '700',
+    fontSize: 11,
+    letterSpacing: 1,
+    marginBottom: 6,
+  },
+  explanationText: {
+    color: '#CBD5E1',
+    fontSize: 14,
+    lineHeight: 21,
+  },
 });
